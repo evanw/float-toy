@@ -238,6 +238,12 @@
       copyBytes[signIndex] &= ~signMask;
       var fraction = copy[0];
 
+      // Handle denormal numbers
+      if (exponent === -exponentBias) {
+        exponent++;
+        fraction--;
+      }
+
       help.innerHTML =
         '<span class="sign">' + (sign ? -1 : 1) + '</span>' +
         '&nbsp;&nbsp;&times;&nbsp;&nbsp;' +
