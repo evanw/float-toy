@@ -1,0 +1,256 @@
+<style>
+  body {
+    margin: 50px;
+    font: 14px/20px sans-serif;
+    cursor: default;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  a {
+    color: inherit;
+  }
+
+  p {
+    margin: 30px 0;
+  }
+
+  h2 {
+    margin: 80px 0 30px 0;
+  }
+
+  table {
+    border-collapse: collapse;
+    font-size: 20px;
+    line-height: 14px;
+  }
+
+  td {
+    font: inherit;
+    padding: 0;
+  }
+
+  td.sign { background: #BBF; }
+  td.exponent { background: #BFB; }
+  td.fraction { background: #FBB; }
+
+  td.sign.hover { background: #99D; }
+  td.exponent.hover { background: #9D9; }
+  td.fraction.hover { background: #D99; }
+
+  .input td {
+    border: 1px solid #000;
+    padding: 5px 2px;
+    font-size: 14px;
+  }
+
+  .output {
+    font: inherit;
+    padding: 5px;
+    margin: -5px;
+    border: 0;
+    outline: none;
+  }
+
+  .output:hover, .output:focus {
+    background: #EEE;
+  }
+
+  .help {
+    height: 50px;
+    font-size: 20px;
+    line-height: 60px;
+    padding-left: 3px;
+  }
+
+  .help sup {
+    vertical-align: top;
+    font-size: 12px;
+    line-height: 50px;
+  }
+
+  .help span {
+    padding: 3px;
+    margin: -3px;
+  }
+
+  span.sign { background: #DDF; }
+  span.exponent { background: #DFD; }
+  span.fraction { background: #FDD; }
+
+</style>
+<body>
+  <h1>Float Toy</h1>
+  <p>
+    Click on a cell below to toggle bit values.
+    Use this to build intuition for the IEEE floating-point format.
+    See Wikipedia for details on the <a href="https://en.wikipedia.org/wiki/Single-precision_floating-point_format">single-precision</a> and <a href="https://en.wikipedia.org/wiki/Double-precision_floating-point_format">double-precision</a> floating-point formats.
+  </p>
+
+  <h2>32-bit (float)</h2>
+  <table>
+    <tr>
+      <td><span id="input32" class="input"></span></td>
+      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
+      <td><input id="output32" class="output"></td>
+    </tr>
+  </table>
+  <div id="help32" class="help"></div>
+
+  <h2>64-bit (double)</h2>
+  <table>
+    <tr>
+      <td><span id="input64" class="input"></span></td>
+      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
+      <td><input id="output64" class="output"></td>
+    </tr>
+  </table>
+  <div id="help64" class="help"></div>
+</body>
+<script>
+
+(function() {
+
+  function load(array, exponentBits, input, output, help) {
+    var bytes = new Uint8Array(array.buffer);
+
+    // Populate HTML
+    var html = '';
+    html += '<table><tr>';
+    for (var i = 0; i < bytes.length; i++) {
+      for (var j = 0; j < 8; j++) {
+        var index = i * 8 + j;
+        var className =
+          index === 0 ? 'sign' :
+          index < 1 + exponentBits ? 'exponent' :
+          'fraction';
+        html += '<td data-index="' + index + '" class="' + className + '">0</td>';
+      }
+    }
+    html += '</tr></table>';
+    input.innerHTML = html;
+
+    // Grab elements
+    var elements = [];
+    for (var i = 0; i < bytes.length * 8; i++) {
+      (function(i) {
+        var element = input.querySelector('[data-index="' + i + '"]');
+        element.onmouseover = function() { this.classList.add('hover'); };
+        element.onmouseout = function() { this.classList.remove('hover'); };
+        elements.push(element);
+      })(i);
+    }
+
+    // Event handlers
+    function extractNumber() {
+      return +(output.value.replace(/\b(?:infinity|inf)\b/gi, 'Infinity'));
+    }
+    output.onkeydown = function(e) {
+      if (e.which === 13) {
+        e.preventDefault();
+        output.blur();
+      }
+
+      else if (e.which === 38) {
+        e.preventDefault();
+        output.value = extractNumber() + 1;
+        output.select();
+        output.oninput();
+      }
+
+      else if (e.which === 40) {
+        e.preventDefault();
+        output.value = extractNumber() - 1;
+        output.select();
+        output.oninput();
+      }
+    };
+    output.onfocus = function() {
+      output.select();
+    };
+    output.oninput = function() {
+      array[0] = extractNumber();
+      render();
+    };
+    output.onblur = function() {
+      render();
+    };
+    input.onmousedown = function(e) {
+      if ('index' in e.target.dataset) {
+        var index = e.target.dataset.index | 0;
+        var byteIndex = bytes.length - (index >> 3) - 1;
+        var byteMask = 1 << (7 - (index & 7));
+        var mouseDownValue = bytes[byteIndex] & byteMask ? 0 : 1;
+        bytes[byteIndex] ^= byteMask;
+        render();
+
+        document.onmousemove = function(e2) {
+          if ('index' in e2.target.dataset) {
+            var index = e2.target.dataset.index | 0;
+            var byteIndex = bytes.length - (index >> 3) - 1;
+            var byteMask = 1 << (7 - (index & 7));
+            bytes[byteIndex] = (bytes[byteIndex] & ~byteMask) | (byteMask * mouseDownValue);
+            render();
+          }
+        };
+
+        document.onmouseup = function() {
+          document.onmousemove = null;
+          document.onmouseup = null;
+        };
+      }
+    };
+
+    // Update loop
+    function render() {
+      if (document.activeElement !== output) {
+        var value = array[0];
+        output.value = value === 0 && 1 / value === -Infinity ? '-0' : value;
+      }
+
+      for (var i = 0; i < bytes.length * 8; i++) {
+        elements[i].textContent = ((bytes[bytes.length - (i >> 3) - 1] >> (7 - (i & 7))) & 1);
+      }
+
+      // Figure out exponent
+      var exponent = 0;
+      for (var i = 0; i < exponentBits; i++) {
+        var index = 1 + i;
+        var bit = (bytes[bytes.length - (index >> 3) - 1] >> (7 - (index & 7))) & 1;
+        exponent += bit << (exponentBits - i - 1);
+      }
+      var exponentBias = (1 << (exponentBits - 1)) - 1;
+      exponent -= exponentBias;
+
+      // Figure out fraction
+      var copyBytes = new Uint8Array(bytes);
+      var copy = bytes.length === 4 ? new Float32Array(copyBytes.buffer) : new Float64Array(copyBytes.buffer);
+      for (var i = 0; i < exponentBits; i++) {
+        var index = 1 + i;
+        var byteIndex = bytes.length - (index >> 3) - 1;
+        var byteMask = 1 << (7 - (index & 7));
+        copyBytes[byteIndex] = (copyBytes[byteIndex] & ~byteMask) | (i === 0 ? 0 : byteMask);
+      }
+      var signIndex = bytes.length - 1;
+      var signMask = 0x80;
+      var sign = copyBytes[signIndex] & signMask;
+      copyBytes[signIndex] &= ~signMask;
+      var fraction = copy[0];
+
+      help.innerHTML =
+        '<span class="sign">' + (sign ? -1 : 1) + '</span>' +
+        '&nbsp;&nbsp;&times;&nbsp;&nbsp;' +
+        '<span class="exponent">2<sup>' + exponent + '</sup></span>' +
+        '&nbsp;&nbsp;&times;&nbsp;&nbsp;' +
+        '<span class="fraction">' + fraction + '</span>';
+    }
+
+    render();
+  }
+
+  load(new Float32Array([Math.PI]), 8, document.getElementById('input32'), document.getElementById('output32'), document.getElementById('help32'));
+  load(new Float64Array([Math.E]), 11, document.getElementById('input64'), document.getElementById('output64'), document.getElementById('help64'));
+
+})();
+
+</script>
