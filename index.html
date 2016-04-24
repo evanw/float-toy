@@ -122,6 +122,60 @@
   function load(array, exponentBits, input, output, help) {
     var bytes = new Uint8Array(array.buffer);
 
+    function reduceNumber(x) {
+      var copy = bytes.length === 4 ? new Float32Array(1) : new Float64Array(1);
+      copy[0] = +x;
+      var value = copy[0];
+      x = value + '';
+
+      if (x === 'NaN' || x === 'Infinity' || x === '-Infinity') {
+        return x;
+      }
+
+      var parts = /^([+-]?\d+)((?:\.\d+)?)((?:[eE][+-]?\d+)?)$/.exec(x);
+      var whole = parts[1];
+      var fraction = parts[2];
+      var exponent = parts[3];
+
+      // Remove digits one-by-one until the number changes
+      while (fraction.length > 0) {
+        // Try truncating
+        var truncatedFraction = fraction.slice(0, -1);
+        var text = whole + (truncatedFraction !== '.' ? truncatedFraction : '') + exponent;
+        copy[0] = +text;
+        var truncatedValue = copy[0];
+        if (truncatedValue === value) {
+          fraction = truncatedFraction;
+          x = text;
+          continue;
+        }
+
+        // Try rounding
+        var roundedFraction = truncatedFraction;
+        var i = roundedFraction.length - 1;
+        var zero = '0'.charCodeAt(0);
+        while (i > 0) {
+          var c = roundedFraction.charCodeAt(i) - zero;
+          roundedFraction = roundedFraction.slice(0, i) + String.fromCharCode((c + 1) % 10 + zero) + roundedFraction.slice(i + 1);
+          if (c < 9) break; // Do we need to carry?
+          i--;
+        }
+        var text = whole + (roundedFraction !== '.' ? roundedFraction : '') + exponent;
+        copy[0] = +text;
+        var roundedValue = copy[0];
+        if (roundedValue === value) {
+          fraction = roundedFraction;
+          x = text;
+          continue;
+        }
+
+        // Both numbers changed, keep the old value
+        break;
+      }
+
+      return x;
+    }
+
     // Populate HTML
     var html = '';
     html += '<table><tr>';
@@ -161,14 +215,14 @@
 
       else if (e.which === 38) {
         e.preventDefault();
-        output.value = extractNumber() + 1;
+        output.value = reduceNumber(extractNumber() + 1);
         output.select();
         output.oninput();
       }
 
       else if (e.which === 40) {
         e.preventDefault();
-        output.value = extractNumber() - 1;
+        output.value = reduceNumber(extractNumber() - 1);
         output.select();
         output.oninput();
       }
@@ -211,11 +265,6 @@
 
     // Update loop
     function render() {
-      if (document.activeElement !== output) {
-        var value = array[0];
-        output.value = value === 0 && 1 / value === -Infinity ? '-0' : value;
-      }
-
       for (var i = 0; i < bytes.length * 8; i++) {
         elements[i].textContent = ((bytes[bytes.length - (i >> 3) - 1] >> (7 - (i & 7))) & 1);
       }
@@ -251,19 +300,24 @@
         fraction--;
       }
 
+      if (document.activeElement !== output) {
+        var value = array[0];
+        output.value = reduceNumber(value === 0 && 1 / value === -Infinity ? '-0' : value);
+      }
+
       help.innerHTML =
         '<span class="sign">' + (sign ? -1 : 1) + '</span>' +
         '&nbsp;&nbsp;&times;&nbsp;&nbsp;' +
         '<span class="exponent">2<sup>' + exponent + '</sup></span>' +
         '&nbsp;&nbsp;&times;&nbsp;&nbsp;' +
-        '<span class="fraction">' + fraction + '</span>';
+        '<span class="fraction">' + reduceNumber(fraction) + '</span>';
     }
 
     render();
   }
 
   load(new Float32Array([Math.PI]), 8, document.getElementById('input32'), document.getElementById('output32'), document.getElementById('help32'));
-  load(new Float64Array([Math.E]), 11, document.getElementById('input64'), document.getElementById('output64'), document.getElementById('help64'));
+  load(new Float64Array([Math.PI]), 11, document.getElementById('input64'), document.getElementById('output64'), document.getElementById('help64'));
 
 })();
 
