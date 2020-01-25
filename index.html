@@ -28,7 +28,7 @@
   td {
     font: inherit;
     padding: 0;
-	text-align: center;
+    text-align: center;
   }
 
   td.sign { background: #BBF; }
@@ -86,7 +86,7 @@
     font-size: 20px;
     line-height: 60px;
     padding-left: 3px;
-	border: 0;
+    border: 0;
   }
 
   .hex:hover, .hex:focus {
@@ -151,11 +151,11 @@
 <script>
 const {Float16Array} = float16;
 
-(function() {
+(function () {
 
   function load(array, exponentBits, input, output, help, hex) {
     var bytes = new Uint8Array(array.buffer);
-	var hexLength = bytes.length;
+    var hexLength = bytes.length;
 
     function reduceNumber(x) {
       var copy = bytes.length === 2 ? new Float16Array(1) : bytes.length === 4 ? new Float32Array(1) : new Float64Array(1);
@@ -213,33 +213,31 @@ const {Float16Array} = float16;
 
     // Populate HTML
     var html = '<table>';
-	//the bit numbers
+    // The bit numbers
     html += '<tr>';
-	for (var i = 0; i < bytes.length; i++) {
-	  for (var j = 0; j < 8; j++) {
-	    var index = (bytes.length - i) * 8 - j;
-		if( index < 10) { //padding with space because I couldn't get CSS to make table cells the same width
-			index = '&nbsp;' + index;
-		}
-		if(j > 3) {
-		  html += '<td class="lightNibble">' + index + '</td>'
-		} else {
-		  html += '<td class="darkNibble">' + index + '</td>'
-		}
-
-
-	  }
-	}
-	html += '</tr>';
-	//the bits
+    for (var i = 0; i < bytes.length; i++) {
+      for (var j = 0; j < 8; j++) {
+        var index = (bytes.length - i) * 8 - j;
+        if (index < 10) { // Padding with space because I couldn't get CSS to make table cells the same width
+          index = '&nbsp;' + index;
+        }
+        if (j > 3) {
+          html += '<td class="lightNibble">' + index + '</td>'
+        } else {
+          html += '<td class="darkNibble">' + index + '</td>'
+        }
+      }
+    }
+    html += '</tr>';
+    // The bits
     html += '<tr>';
     for (var i = 0; i < bytes.length; i++) {
       for (var j = 0; j < 8; j++) {
         var index = i * 8 + j;
         var className =
           index === 0 ? 'sign' :
-          index < 1 + exponentBits ? 'exponent' :
-          'fraction';
+            index < 1 + exponentBits ? 'exponent' :
+              'fraction';
         html += '<td data-index="' + index + '" class="' + className + '">0</td>';
       }
     }
@@ -249,10 +247,10 @@ const {Float16Array} = float16;
     // Grab elements
     var elements = [];
     for (var i = 0; i < bytes.length * 8; i++) {
-      (function(i) {
+      (function (i) {
         var element = input.querySelector('[data-index="' + i + '"]');
-        element.onmouseover = function() { this.classList.add('hover'); };
-        element.onmouseout = function() { this.classList.remove('hover'); };
+        element.onmouseover = function () { this.classList.add('hover'); };
+        element.onmouseout = function () { this.classList.remove('hover'); };
         elements.push(element);
       })(i);
     }
@@ -261,7 +259,7 @@ const {Float16Array} = float16;
     function extractNumber() {
       return +(output.value.replace(/\b(?:infinity|inf)\b/gi, 'Infinity'));
     }
-    output.onkeydown = function(e) {
+    output.onkeydown = function (e) {
       if (e.which === 13) {
         e.preventDefault();
         output.blur();
@@ -281,55 +279,54 @@ const {Float16Array} = float16;
         output.oninput();
       }
     };
-    output.onfocus = function() {
+    output.onfocus = function () {
       output.select();
     };
-    output.oninput = function() {
+    output.oninput = function () {
       array[0] = extractNumber();
       render();
     };
-    output.onblur = function() {
+    output.onblur = function () {
       render();
     };
 
-	hex.onkeydown = function(e) {
+    hex.onkeydown = function (e) {
       if (e.which === 13) {
         e.preventDefault();
         hex.blur();
       }
     };
-    hex.onfocus = function() {
+    hex.onfocus = function () {
       hex.select();
     };
-    hex.oninput = function() {
-	  var hexAlphabet = '0123456789abcdefABCDEF';
-	  var validHexCharas= hex.value.split('').every( function (c) {
-									return hexAlphabet.split('').lastIndexOf(c) !== -1;
-								});
-	  if(hex.value.length > (hexLength * 2) || validHexCharas === false) {
-		hex.value = hex.value.slice(0,-1);
-	    return;
-	  }
+    hex.oninput = function () {
+      var hexAlphabet = '0123456789abcdefABCDEF';
+      var validHexCharas = hex.value.split('').every(function (c) {
+        return hexAlphabet.split('').lastIndexOf(c) !== -1;
+      });
+      if (hex.value.length > (hexLength * 2) || validHexCharas === false) {
+        hex.value = hex.value.slice(0, -1);
+        return;
+      }
 
-
-	  var tmpBytes = toByteArray(hex.value);
-	  var tmpBytesLength = tmpBytes.length;
-	  //pad to the right with zeros
-	  for(var i=0; i<hexLength - tmpBytesLength; i++) {
-	    tmpBytes.push(0);
-	  }
-	  if(tmpBytes.length == 4) {
-		array[0] = makeFloat(tmpBytes);
-	  } else {
-	    array[0] = makeDouble(tmpBytes);
-	  }
+      var tmpBytes = toByteArray(hex.value);
+      var tmpBytesLength = tmpBytes.length;
+      // Pad to the right with zeros
+      for (var i = 0; i < hexLength - tmpBytesLength; i++) {
+        tmpBytes.push(0);
+      }
+      if (tmpBytes.length == 4) {
+        array[0] = makeFloat(tmpBytes);
+      } else {
+        array[0] = makeDouble(tmpBytes);
+      }
       render();
     };
-    hex.onblur = function() {
+    hex.onblur = function () {
       render();
     };
 
-    input.onmousedown = function(e) {
+    input.onmousedown = function (e) {
       if ('index' in e.target.dataset) {
         var index = e.target.dataset.index | 0;
         var byteIndex = bytes.length - (index >> 3) - 1;
@@ -338,7 +335,7 @@ const {Float16Array} = float16;
         bytes[byteIndex] ^= byteMask;
         render();
 
-        document.onmousemove = function(e2) {
+        document.onmousemove = function (e2) {
           if ('index' in e2.target.dataset) {
             var index = e2.target.dataset.index | 0;
             var byteIndex = bytes.length - (index >> 3) - 1;
@@ -348,7 +345,7 @@ const {Float16Array} = float16;
           }
         };
 
-        document.onmouseup = function() {
+        document.onmouseup = function () {
           document.onmousemove = null;
           document.onmouseup = null;
         };
@@ -392,18 +389,18 @@ const {Float16Array} = float16;
         fraction--;
       }
 
-	  //update views according to which input was edited
+      // Update views according to which input was edited
       if (document.activeElement === hex) {
         var value = array[0];
         output.value = reduceNumber(value === 0 && 1 / value === -Infinity ? '-0' : value);
       } else if (document.activeElement === output) {
         var tmpBytes = bytes.slice().reverse();
-		hex.value = toHexString(tmpBytes);
-      } else { // this branch is for when the individual bits get toggled
+        hex.value = toHexString(tmpBytes);
+      } else { // This branch is for when the individual bits get toggled
         var value = array[0];
         output.value = reduceNumber(value === 0 && 1 / value === -Infinity ? '-0' : value);
-		var tmpBytes = bytes.slice().reverse();
-	    hex.value = toHexString(tmpBytes);
+        var tmpBytes = bytes.slice().reverse();
+        hex.value = toHexString(tmpBytes);
       }
 
       help.innerHTML =
@@ -414,49 +411,47 @@ const {Float16Array} = float16;
         '<span class="fraction">' + reduceNumber(fraction) + '</span>';
     }
 
-	function toHexString(byteArray) {
-	  return Array.from(byteArray, function(byte) {
-		return ('0' + byte.toString(16)).slice(-2);
-	  }).join('')
-	}
+    function toHexString(byteArray) {
+      return Array.from(byteArray, function (byte) {
+        return ('0' + byte.toString(16)).slice(-2);
+      }).join('')
+    }
 
     function toByteArray(hexString) {
       var result = [];
-	  if(hexString.length %2 == 1) {
-		hexString = hexString + '0';
-	  }
-	  for (var i = 0; i < hexString.length; i += 2) {
-		result.push(parseInt(hexString.substr(i, 2), 16));
-	  }
-	  return result;
-	}
+      if (hexString.length % 2 == 1) {
+        hexString = hexString + '0';
+      }
+      for (var i = 0; i < hexString.length; i += 2) {
+        result.push(parseInt(hexString.substr(i, 2), 16));
+      }
+      return result;
+    }
 
-	function makeFloat(bytearray) {
-		var buf = new ArrayBuffer(4);
-		var view = new DataView(buf);
-		bytearray.forEach(function (b, i) {
-			view.setUint8(i, b);
-		});
-		return view.getFloat32(0);
-	}
+    function makeFloat(bytearray) {
+      var buf = new ArrayBuffer(4);
+      var view = new DataView(buf);
+      bytearray.forEach(function (b, i) {
+        view.setUint8(i, b);
+      });
+      return view.getFloat32(0);
+    }
 
-	function makeDouble(bytearray) {
-		var buf = new ArrayBuffer(8);
-		var view = new DataView(buf);
-		bytearray.forEach(function (b, i) {
-			view.setUint8(i, b);
-		});
-		return view.getFloat64(0);
-	}
+    function makeDouble(bytearray) {
+      var buf = new ArrayBuffer(8);
+      var view = new DataView(buf);
+      bytearray.forEach(function (b, i) {
+        view.setUint8(i, b);
+      });
+      return view.getFloat64(0);
+    }
 
     render();
   }
 
-
-
   load(new Float16Array([Math.PI]), 5, document.getElementById('input16'), document.getElementById('output16'), document.getElementById('help16'), document.getElementById('hex16'));
   load(new Float32Array([Math.PI]), 8, document.getElementById('input32'), document.getElementById('output32'), document.getElementById('help32'), document.getElementById('hex32'));
-  load(new Float64Array([Math.PI]), 11, document.getElementById('input64'), document.getElementById('output64'), document.getElementById('help64'),document.getElementById('hex64'));
+  load(new Float64Array([Math.PI]), 11, document.getElementById('input64'), document.getElementById('output64'), document.getElementById('help64'), document.getElementById('hex64'));
 
 })();
 
