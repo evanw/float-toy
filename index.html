@@ -1,3 +1,4 @@
+<meta charset="utf8">
 <title>Float Toy</title>
 <style>
   body {
@@ -15,7 +16,7 @@
   }
 
   h2 {
-    margin: 80px 0 30px 0;
+    margin: 60px 0 30px 0;
   }
 
   table {
@@ -28,6 +29,7 @@
   td {
     font: inherit;
     padding: 0;
+    text-align: center;
   }
 
   td.sign { background: #BBF; }
@@ -44,7 +46,21 @@
     font-size: 14px;
   }
 
+  .zerox-col {
+    vertical-align: bottom;
+  }
+
+  .zerox {
+    height: 26px;
+    line-height: 26px;
+  }
+
   .output-col {
+    width: 100%;
+    vertical-align: bottom;
+  }
+
+  .hex-col {
     width: 100%;
   }
 
@@ -56,10 +72,14 @@
     outline: none;
     width: 100%;
     min-width: 200px;
+    background: none;
+    height: 26px;
+    line-height: 26px;
+    box-sizing: content-box;
   }
 
   .output:hover, .output:focus {
-    background: #EEE;
+    background: rgba(0, 0, 0, 0.066);
   }
 
   .help {
@@ -80,6 +100,16 @@
     margin: -3px;
   }
 
+  td.nibble {
+    font-size: 10px;
+    line-height: 6px;
+    border: none;
+  }
+
+  td.dark.nibble {
+    background: #DDD;
+  }
+
   span.sign { background: #DDF; }
   span.exponent { background: #DFD; }
   span.fraction { background: #FDD; }
@@ -88,7 +118,7 @@
 <body>
   <h1>Float Toy</h1>
   <p>
-    Click on a cell below to toggle bit values.
+    Click on a cell below to toggle bit values, or edit the hex or decimal values directly.
     Use this to build intuition for the IEEE floating-point format.
     See Wikipedia for details on the <a href="https://en.wikipedia.org/wiki/Half-precision_floating-point_format">half-precision</a>, <a href="https://en.wikipedia.org/wiki/Single-precision_floating-point_format">single-precision</a> and <a href="https://en.wikipedia.org/wiki/Double-precision_floating-point_format">double-precision</a> floating-point formats.
   </p>
@@ -97,40 +127,59 @@
   <table>
     <tr>
       <td><span id="input16" class="input"></span></td>
-      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
-      <td class="output-col"><input id="output16" class="output"></td>
+      <td class="zerox-col"><span class="zerox">&nbsp;&nbsp;=&nbsp;&nbsp;0x</span></td>
+      <td class="output-col"><input id="hex16" class="output"></td>
     </tr>
   </table>
-  <div id="help16" class="help"></div>
+  <table>
+    <tr>
+      <td><span id="help16" class="help"></span></td>
+      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
+      <td class="hex-col"><input id="output16" class="output"></td>
+    </tr>
+  </table>
 
   <h2>32-bit (float)</h2>
   <table>
     <tr>
       <td><span id="input32" class="input"></span></td>
-      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
-      <td class="output-col"><input id="output32" class="output"></td>
+      <td class="zerox-col"><span class="zerox">&nbsp;&nbsp;=&nbsp;&nbsp;0x</span></td>
+      <td class="output-col"><input id="hex32" class="output"></td>
     </tr>
   </table>
-  <div id="help32" class="help"></div>
+  <table>
+    <tr>
+      <td><span id="help32" class="help"></span></td>
+      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
+      <td class="hex-col"><input id="output32" class="output"></td>
+    </tr>
+  </table>
 
   <h2>64-bit (double)</h2>
   <table>
     <tr>
       <td><span id="input64" class="input"></span></td>
-      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
-      <td class="output-col"><input id="output64" class="output"></td>
+      <td class="zerox-col"><span class="zerox">&nbsp;&nbsp;=&nbsp;&nbsp;0x</span></td>
+      <td class="output-col"><input id="hex64" class="output"></td>
     </tr>
   </table>
-  <div id="help64" class="help"></div>
+  <table>
+    <tr>
+      <td><span id="help64" class="help"></span></td>
+      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
+      <td class="hex-col"><input id="output64" class="output"></td>
+    </tr>
+  </table>
 </body>
 <script src="./float16.js"></script>
 <script>
 const {Float16Array} = float16;
 
-(function() {
+(function () {
 
-  function load(array, exponentBits, input, output, help) {
+  function load(array, exponentBits, input, output, help, hex) {
     var bytes = new Uint8Array(array.buffer);
+    var hexLength = bytes.length;
 
     function reduceNumber(x) {
       var copy = bytes.length === 2 ? new Float16Array(1) : bytes.length === 4 ? new Float32Array(1) : new Float64Array(1);
@@ -187,15 +236,29 @@ const {Float16Array} = float16;
     }
 
     // Populate HTML
-    var html = '';
-    html += '<table><tr>';
+    var html = '<table>';
+    // The bit numbers
+    html += '<tr>';
+    for (var i = 0; i < bytes.length; i++) {
+      for (var j = 0; j < 8; j++) {
+        var index = (bytes.length - i) * 8 - j;
+        if (j > 3) {
+          html += '<td class="nibble">' + index + '</td>'
+        } else {
+          html += '<td class="dark nibble">' + index + '</td>'
+        }
+      }
+    }
+    html += '</tr>';
+    // The bits
+    html += '<tr>';
     for (var i = 0; i < bytes.length; i++) {
       for (var j = 0; j < 8; j++) {
         var index = i * 8 + j;
         var className =
           index === 0 ? 'sign' :
-          index < 1 + exponentBits ? 'exponent' :
-          'fraction';
+            index < 1 + exponentBits ? 'exponent' :
+              'fraction';
         html += '<td data-index="' + index + '" class="' + className + '">0</td>';
       }
     }
@@ -205,10 +268,10 @@ const {Float16Array} = float16;
     // Grab elements
     var elements = [];
     for (var i = 0; i < bytes.length * 8; i++) {
-      (function(i) {
+      (function (i) {
         var element = input.querySelector('[data-index="' + i + '"]');
-        element.onmouseover = function() { this.classList.add('hover'); };
-        element.onmouseout = function() { this.classList.remove('hover'); };
+        element.onmouseover = function () { this.classList.add('hover'); };
+        element.onmouseout = function () { this.classList.remove('hover'); };
         elements.push(element);
       })(i);
     }
@@ -217,7 +280,7 @@ const {Float16Array} = float16;
     function extractNumber() {
       return +(output.value.replace(/\b(?:infinity|inf)\b/gi, 'Infinity'));
     }
-    output.onkeydown = function(e) {
+    output.onkeydown = function (e) {
       if (e.which === 13) {
         e.preventDefault();
         output.blur();
@@ -237,17 +300,46 @@ const {Float16Array} = float16;
         output.oninput();
       }
     };
-    output.onfocus = function() {
+    output.onfocus = function () {
       output.select();
     };
-    output.oninput = function() {
+    output.oninput = function () {
       array[0] = extractNumber();
       render();
     };
-    output.onblur = function() {
+    output.onblur = function () {
       render();
     };
-    input.onmousedown = function(e) {
+
+    hex.onkeydown = function (e) {
+      if (e.which === 13) {
+        e.preventDefault();
+        hex.blur();
+      }
+    };
+    hex.onfocus = function () {
+      hex.select();
+    };
+    hex.oninput = function () {
+      var hexAlphabet = '0123456789abcdefABCDEF';
+      var validHexCharas = hex.value.split('').every(function (c) {
+        return hexAlphabet.split('').lastIndexOf(c) !== -1;
+      });
+      if (hex.value.length > (hexLength * 2) || validHexCharas === false) {
+        hex.value = hex.value.slice(0, -1);
+        return;
+      }
+
+      var tmpBytes = toByteArray(hex.value);
+      bytes.fill(0);
+      bytes.set(tmpBytes.reverse(), hexLength - tmpBytes.length);
+      render();
+    };
+    hex.onblur = function () {
+      render();
+    };
+
+    input.onmousedown = function (e) {
       if ('index' in e.target.dataset) {
         var index = e.target.dataset.index | 0;
         var byteIndex = bytes.length - (index >> 3) - 1;
@@ -256,7 +348,7 @@ const {Float16Array} = float16;
         bytes[byteIndex] ^= byteMask;
         render();
 
-        document.onmousemove = function(e2) {
+        document.onmousemove = function (e2) {
           if ('index' in e2.target.dataset) {
             var index = e2.target.dataset.index | 0;
             var byteIndex = bytes.length - (index >> 3) - 1;
@@ -266,7 +358,7 @@ const {Float16Array} = float16;
           }
         };
 
-        document.onmouseup = function() {
+        document.onmouseup = function () {
           document.onmousemove = null;
           document.onmouseup = null;
         };
@@ -310,9 +402,18 @@ const {Float16Array} = float16;
         fraction--;
       }
 
-      if (document.activeElement !== output) {
+      // Update views according to which input was edited
+      if (document.activeElement === hex) {
         var value = array[0];
         output.value = reduceNumber(value === 0 && 1 / value === -Infinity ? '-0' : value);
+      } else if (document.activeElement === output) {
+        var tmpBytes = bytes.slice().reverse();
+        hex.value = toHexString(tmpBytes);
+      } else { // This branch is for when the individual bits get toggled
+        var value = array[0];
+        output.value = reduceNumber(value === 0 && 1 / value === -Infinity ? '-0' : value);
+        var tmpBytes = bytes.slice().reverse();
+        hex.value = toHexString(tmpBytes);
       }
 
       help.innerHTML =
@@ -323,12 +424,29 @@ const {Float16Array} = float16;
         '<span class="fraction">' + reduceNumber(fraction) + '</span>';
     }
 
+    function toHexString(byteArray) {
+      return Array.from(byteArray, function (byte) {
+        return ('0' + byte.toString(16).toUpperCase()).slice(-2);
+      }).join('')
+    }
+
+    function toByteArray(hexString) {
+      var result = [];
+      if (hexString.length % 2 == 1) {
+        hexString = hexString + '0';
+      }
+      for (var i = 0; i < hexString.length; i += 2) {
+        result.push(parseInt(hexString.substr(i, 2), 16));
+      }
+      return result;
+    }
+
     render();
   }
 
-  load(new Float16Array([Math.PI]), 5, document.getElementById('input16'), document.getElementById('output16'), document.getElementById('help16'));
-  load(new Float32Array([Math.PI]), 8, document.getElementById('input32'), document.getElementById('output32'), document.getElementById('help32'));
-  load(new Float64Array([Math.PI]), 11, document.getElementById('input64'), document.getElementById('output64'), document.getElementById('help64'));
+  load(new Float16Array([Math.PI]), 5, document.getElementById('input16'), document.getElementById('output16'), document.getElementById('help16'), document.getElementById('hex16'));
+  load(new Float32Array([Math.PI]), 8, document.getElementById('input32'), document.getElementById('output32'), document.getElementById('help32'), document.getElementById('hex32'));
+  load(new Float64Array([Math.PI]), 11, document.getElementById('input64'), document.getElementById('output64'), document.getElementById('help64'), document.getElementById('hex64'));
 
 })();
 
