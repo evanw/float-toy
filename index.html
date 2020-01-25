@@ -331,16 +331,8 @@ const {Float16Array} = float16;
       }
 
       var tmpBytes = toByteArray(hex.value);
-      var tmpBytesLength = tmpBytes.length;
-      // Pad to the right with zeros
-      for (var i = 0; i < hexLength - tmpBytesLength; i++) {
-        tmpBytes.push(0);
-      }
-      if (tmpBytes.length == 4) {
-        array[0] = makeFloat(tmpBytes);
-      } else {
-        array[0] = makeDouble(tmpBytes);
-      }
+      bytes.fill(0);
+      bytes.set(tmpBytes.reverse(), hexLength - tmpBytes.length);
       render();
     };
     hex.onblur = function () {
@@ -447,24 +439,6 @@ const {Float16Array} = float16;
         result.push(parseInt(hexString.substr(i, 2), 16));
       }
       return result;
-    }
-
-    function makeFloat(bytearray) {
-      var buf = new ArrayBuffer(4);
-      var view = new DataView(buf);
-      bytearray.forEach(function (b, i) {
-        view.setUint8(i, b);
-      });
-      return view.getFloat32(0);
-    }
-
-    function makeDouble(bytearray) {
-      var buf = new ArrayBuffer(8);
-      var view = new DataView(buf);
-      bytearray.forEach(function (b, i) {
-        view.setUint8(i, b);
-      });
-      return view.getFloat64(0);
     }
 
     render();
