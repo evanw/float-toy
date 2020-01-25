@@ -1,3 +1,4 @@
+<meta charset="utf8">
 <title>Float Toy</title>
 <style>
   body {
@@ -15,7 +16,7 @@
   }
 
   h2 {
-    margin: 80px 0 30px 0;
+    margin: 60px 0 30px 0;
   }
 
   table {
@@ -45,7 +46,21 @@
     font-size: 14px;
   }
 
+  .zerox-col {
+    vertical-align: bottom;
+  }
+
+  .zerox {
+    height: 26px;
+    line-height: 26px;
+  }
+
   .output-col {
+    width: 100%;
+    vertical-align: bottom;
+  }
+
+  .hex-col {
     width: 100%;
   }
 
@@ -57,10 +72,14 @@
     outline: none;
     width: 100%;
     min-width: 200px;
+    background: none;
+    height: 26px;
+    line-height: 26px;
+    box-sizing: content-box;
   }
 
   .output:hover, .output:focus {
-    background: #EEE;
+    background: rgba(0, 0, 0, 0.066);
   }
 
   .help {
@@ -81,24 +100,14 @@
     margin: -3px;
   }
 
-  .hex {
-    height: 50px;
-    font-size: 20px;
-    line-height: 60px;
-    padding-left: 3px;
-    border: 0;
+  td.nibble {
+    font-size: 10px;
+    line-height: 6px;
+    border: none;
   }
 
-  .hex:hover, .hex:focus {
-    background: #EEE;
-  }
-
-  .lightNibble {
-    background: #C0C0C0;
-  }
-
-  .darkNibble {
-    background: #959595;
+  td.dark.nibble {
+    background: #DDD;
   }
 
   span.sign { background: #DDF; }
@@ -109,43 +118,58 @@
 <body>
   <h1>Float Toy</h1>
   <p>
-    Click on a cell below to toggle bit values or edit the hex string to change the value.
+    Click on a cell below to toggle bit values, or edit the hex or decimal values directly.
     Use this to build intuition for the IEEE floating-point format.
     See Wikipedia for details on the <a href="https://en.wikipedia.org/wiki/Half-precision_floating-point_format">half-precision</a>, <a href="https://en.wikipedia.org/wiki/Single-precision_floating-point_format">single-precision</a> and <a href="https://en.wikipedia.org/wiki/Double-precision_floating-point_format">double-precision</a> floating-point formats.
   </p>
 
   <h2>16-bit (half)</h2>
-  <input id="hex16" class="hex"/>
   <table>
     <tr>
       <td><span id="input16" class="input"></span></td>
-      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
-      <td class="output-col"><input id="output16" class="output"></td>
+      <td class="zerox-col"><span class="zerox">&nbsp;&nbsp;=&nbsp;&nbsp;0x</span></td>
+      <td class="output-col"><input id="hex16" class="output"></td>
     </tr>
   </table>
-  <div id="help16" class="help"></div>
+  <table>
+    <tr>
+      <td><span id="help16" class="help"></span></td>
+      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
+      <td class="hex-col"><input id="output16" class="output"></td>
+    </tr>
+  </table>
 
   <h2>32-bit (float)</h2>
-  <input id="hex32" class="hex"/>
   <table>
     <tr>
       <td><span id="input32" class="input"></span></td>
-      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
-      <td class="output-col"><input id="output32" class="output"></td>
+      <td class="zerox-col"><span class="zerox">&nbsp;&nbsp;=&nbsp;&nbsp;0x</span></td>
+      <td class="output-col"><input id="hex32" class="output"></td>
     </tr>
   </table>
-  <div id="help32" class="help"></div>
+  <table>
+    <tr>
+      <td><span id="help32" class="help"></span></td>
+      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
+      <td class="hex-col"><input id="output32" class="output"></td>
+    </tr>
+  </table>
 
   <h2>64-bit (double)</h2>
-  <input id="hex64" class="hex"/>
   <table>
     <tr>
       <td><span id="input64" class="input"></span></td>
-      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
-      <td class="output-col"><input id="output64" class="output"></td>
+      <td class="zerox-col"><span class="zerox">&nbsp;&nbsp;=&nbsp;&nbsp;0x</span></td>
+      <td class="output-col"><input id="hex64" class="output"></td>
     </tr>
   </table>
-  <div id="help64" class="help"></div>
+  <table>
+    <tr>
+      <td><span id="help64" class="help"></span></td>
+      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
+      <td class="hex-col"><input id="output64" class="output"></td>
+    </tr>
+  </table>
 </body>
 <script src="./float16.js"></script>
 <script>
@@ -218,13 +242,10 @@ const {Float16Array} = float16;
     for (var i = 0; i < bytes.length; i++) {
       for (var j = 0; j < 8; j++) {
         var index = (bytes.length - i) * 8 - j;
-        if (index < 10) { // Padding with space because I couldn't get CSS to make table cells the same width
-          index = '&nbsp;' + index;
-        }
         if (j > 3) {
-          html += '<td class="lightNibble">' + index + '</td>'
+          html += '<td class="nibble">' + index + '</td>'
         } else {
-          html += '<td class="darkNibble">' + index + '</td>'
+          html += '<td class="dark nibble">' + index + '</td>'
         }
       }
     }
@@ -413,7 +434,7 @@ const {Float16Array} = float16;
 
     function toHexString(byteArray) {
       return Array.from(byteArray, function (byte) {
-        return ('0' + byte.toString(16)).slice(-2);
+        return ('0' + byte.toString(16).toUpperCase()).slice(-2);
       }).join('')
     }
 
