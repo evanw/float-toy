@@ -92,8 +92,18 @@
   <p>
     Click on a cell below to toggle bit values.
     Use this to build intuition for the IEEE floating-point format.
-    See Wikipedia for details on the <a href="https://en.wikipedia.org/wiki/Single-precision_floating-point_format">single-precision</a> and <a href="https://en.wikipedia.org/wiki/Double-precision_floating-point_format">double-precision</a> floating-point formats.
+    See Wikipedia for details on the <a href="https://en.wikipedia.org/wiki/Half-precision_floating-point_format">half-precision</a>, <a href="https://en.wikipedia.org/wiki/Single-precision_floating-point_format">single-precision</a> and <a href="https://en.wikipedia.org/wiki/Double-precision_floating-point_format">double-precision</a> floating-point formats.
   </p>
+
+  <h2>16-bit (half)</h2>
+  <table>
+    <tr>
+      <td><span id="input16" class="input"></span></td>
+      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
+      <td class="output-col"><input id="output16" class="output"></td>
+    </tr>
+  </table>
+  <div id="help16" class="help"></div>
 
   <h2>32-bit (float)</h2>
   <table>
@@ -115,7 +125,9 @@
   </table>
   <div id="help64" class="help"></div>
 </body>
+<script src="./float16.js"></script>
 <script>
+const {Float16Array} = float16;
 
 (function() {
 
@@ -123,7 +135,7 @@
     var bytes = new Uint8Array(array.buffer);
 
     function reduceNumber(x) {
-      var copy = bytes.length === 4 ? new Float32Array(1) : new Float64Array(1);
+      var copy = bytes.length === 2 ? new Float16Array(1) : bytes.length === 4 ? new Float32Array(1) : new Float64Array(1);
       copy[0] = +x;
       var value = copy[0];
       x = value + '';
@@ -281,7 +293,7 @@
 
       // Figure out fraction
       var copyBytes = new Uint8Array(bytes);
-      var copy = bytes.length === 4 ? new Float32Array(copyBytes.buffer) : new Float64Array(copyBytes.buffer);
+      var copy = bytes.length === 2 ? new Float16Array(copyBytes.buffer) : bytes.length === 4 ? new Float32Array(copyBytes.buffer) : new Float64Array(copyBytes.buffer);
       for (var i = 0; i < exponentBits; i++) {
         var index = 1 + i;
         var byteIndex = bytes.length - (index >> 3) - 1;
@@ -316,6 +328,7 @@
     render();
   }
 
+  load(new Float16Array([Math.PI]), 5, document.getElementById('input16'), document.getElementById('output16'), document.getElementById('help16'));
   load(new Float32Array([Math.PI]), 8, document.getElementById('input32'), document.getElementById('output32'), document.getElementById('help32'));
   load(new Float64Array([Math.PI]), 11, document.getElementById('input64'), document.getElementById('output64'), document.getElementById('help64'));
 
