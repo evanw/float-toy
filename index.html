@@ -333,11 +333,17 @@ const {Float16Array} = float16;
 
       var tmpBytes = toByteArray(hex.value);
       bytes.fill(0);
-      bytes.set(tmpBytes.reverse(), hexLength - tmpBytes.length);
+      // tmpBytes is in big-endian order (MSB first from hex string)
+      // bytes array is in little-endian order (LSB at index 0)
+      // So we reverse tmpBytes and place from the end
+      tmpBytes.reverse();
+      for (var i = 0; i < tmpBytes.length; i++) {
+        bytes[i] = tmpBytes[i];
+      }
       render();
     };
     hex.onblur = function () {
-      render();
+      // Don't reformat the hex value on blur - keep what the user typed
     };
 
     input.onmousedown = function (e) {
@@ -426,15 +432,17 @@ const {Float16Array} = float16;
     }
 
     function toHexString(byteArray) {
-      return Array.from(byteArray, function (byte) {
+      var hexStr = Array.from(byteArray, function (byte) {
         return ('0' + byte.toString(16).toUpperCase()).slice(-2);
-      }).join('')
+      }).join('');
+      // Remove leading zeros but keep at least one digit
+      return hexStr.replace(/^0+(?=.)/, '') || '0';
     }
 
     function toByteArray(hexString) {
       var result = [];
       if (hexString.length % 2 == 1) {
-        hexString = hexString + '0';
+        hexString = '0' + hexString;
       }
       for (var i = 0; i < hexString.length; i += 2) {
         result.push(parseInt(hexString.substr(i, 2), 16));
